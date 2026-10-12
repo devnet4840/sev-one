@@ -1,0 +1,12 @@
+# Pinned on purpose. The LaunchDarkly Python AI SDK is in open beta and LaunchDarkly recommends
+# pinning it, since APIs may change between beta releases. Everything here was tested together.
+# requirements.lock.txt pins the full dependency tree the tests ran against.
+launchdarkly-server-sdk==9.18.0
+launchdarkly-ai-server==0.2.4
+launchdarkly-ai-openai-agents==0.2.4
+openai-agents==0.23.1
+openai==3.25.0
+fastapi==0.142.2
+uvicorn==0.54.0
+python-dotenv==1.2.4
+httpx==0.28.1

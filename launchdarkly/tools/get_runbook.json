@@ -1,0 +1,15 @@
+{
+  "key": "get_runbook",
+  "description": "List the runbook steps for the incident's service: a step_id, title, exact command, risk, and whether the step needs incident commander approval. Read-only: it does not run anything.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "incident_id": {
+        "type": "string",
+        "description": "The incident ID, for example INC-4821."
+      }
+    },
+    "required": ["incident_id"],
+    "additionalProperties": false
+  }
+}

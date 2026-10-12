@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sev One</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26"><path d="M16 4a8 8 0 0 0-8 8v6l-3 4h22l-3-4v-6a8 8 0 0 0-8-8Zm-3 21a3 3 0 0 0 6 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="brand-name">ABC Company On-call</span>
+      <span class="brand-sub">Sev One, a LaunchDarkly AgentControl demo</span>
+    </div>
+    <dl class="modes" aria-label="Run modes">
+      <div><dt>LaunchDarkly</dt><dd id="mode-ld">…</dd></div>
+      <div><dt>Model</dt><dd id="mode-llm">…</dd></div>
+      <div><dt>Live updates</dt><dd id="mode-stream" class="stream-pending">connecting</dd></div>
+    </dl>
+  </header>
+
+  <main class="split">
+    <!-- ============================ ENGINEER ============================ -->
+    <section class="engineer" aria-labelledby="engineer-heading">
+      <h2 id="engineer-heading" class="visually-hidden">On-call engineer's view</h2>
+
+      <fieldset class="personas">
+        <legend>Signed in as</legend>
+        <div id="persona-buttons" class="persona-buttons"></div>
+      </fieldset>
+
+      <article class="incident" id="incident" aria-live="polite">
+        <div class="incident-top">
+          <span class="sev" id="incident-sev">SEV</span>
+          <span class="incident-id" id="incident-id">INC</span>
+          <span class="incident-where" id="incident-where"></span>
+        </div>
+        <p class="incident-title" id="incident-title">Loading incident…</p>
+        <p class="incident-alert" id="incident-alert"></p>
+        <dl class="tiles" id="incident-tiles"></dl>
+      </article>
+
+      <form id="ask" class="ask" autocomplete="off">
+        <label for="question">Ask the on-call assistant</label>
+        <div class="ask-row">
+          <input id="question" name="question" type="text" maxlength="500" placeholder="What should I do first?" required>
+          <button type="submit" id="ask-button" class="btn btn-primary">Ask</button>
+        </div>
+        <div class="chips" id="chips" aria-label="Suggested questions"></div>
+      </form>
+
+      <div class="answer" id="answer" aria-live="polite" hidden>
+        <p class="answer-kind" id="answer-kind"></p>
+        <p class="answer-text" id="answer-text"></p>
+        <button type="button" class="btn btn-quiet" id="ask-again">Ask again</button>
+      </div>
+      <div class="answer-wait" id="answer-wait" hidden>Reading the incident and runbook…</div>
+
+      <div class="steps-unavailable" id="steps-unavailable" role="status" hidden>
+        <h3 class="steps-heading">Runbook unavailable</h3>
+        <p>We couldn't load this incident or its runbook right now. Open the incident tracker directly, and page the incident commander if customers are affected.</p>
+      </div>
+
+      <div class="steps-wrap" id="steps-wrap" hidden>
+        <h3 class="steps-heading">Runbook steps</h3>
+        <p class="steps-note">From the service runbook. The assistant can only read; you run the commands.</p>
+        <ol class="steps" id="steps"></ol>
+      </div>
+    </section>
+
+    <!-- ============================ OPERATOR ============================ -->
+    <section class="operator" aria-labelledby="operator-heading">
+      <div class="op-head">
+        <h2 id="operator-heading">Operator console</h2>
+        <p class="op-sub">What LaunchDarkly is serving, and why each answer was sent or blocked.</p>
+      </div>
+
+      <div class="op-locked" id="operator-locked" hidden>
+        <p id="operator-locked-text"></p>
+        <form id="operator-signin" class="op-signin" hidden>
+          <label for="operator-token">Operator token</label>
+          <div class="ask-row">
+            <input id="operator-token" type="password" autocomplete="off" required>
+            <button type="submit" class="btn btn-ghost">Sign in</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="operator-body" hidden>
+
+      <div class="op-block" id="serving" aria-live="polite">
+        <h3>Serving to <span id="serving-name">…</span> now</h3>
+        <dl class="facts">
+          <div><dt>AI guidance</dt><dd><span class="pill" id="feature-pill">…</span></dd></div>
+          <div><dt>Flag</dt><dd id="flag-key">…</dd></div>
+          <div><dt>Config variation</dt><dd id="avail-variation">…</dd></div>
+          <div><dt>Model</dt><dd id="avail-model">…</dd></div>
+          <div><dt>Tools attached</dt><dd id="avail-tools">…</dd></div>
+          <div><dt>LaunchDarkly connection</dt><dd id="connection">…</dd></div>
+        </dl>
+        <div class="rollback">
+          <button type="button" class="btn btn-danger" id="rollback">Roll back AI guidance</button>
+          <button type="button" class="btn btn-ghost" id="restore">Restore</button>
+          <p class="rollback-note" id="rollback-note">Fires the LaunchDarkly trigger on the flag. Everyone gets the standard message on their next question.</p>
+        </div>
+        <div class="fixture">
+          <button type="button" class="btn btn-ghost" id="fixture">Inject test failure</button>
+          <p class="rollback-note" id="fixture-note">Test fixture: the next AI answer, for any engineer, is a known bad reply instead of a model answer. It claims the assistant already rolled back the deploy, which its read-only tools cannot do, so the checks should block it. Nothing is sent to LaunchDarkly's metrics.</p>
+        </div>
+      </div>
+
+      <div class="op-block" id="last-turn">
+        <h3>Last answer for <span id="last-name">…</span></h3>
+        <p class="empty" id="last-empty">No question asked yet. Ask one on the left.</p>
+        <div id="last-body" hidden>
+          <p class="decision" id="decision"></p>
+          <dl class="facts compact">
+            <div><dt>Variation used</dt><dd id="used-variation">…</dd></div>
+            <div><dt>Model used</dt><dd id="used-model">…</dd></div>
+            <div><dt>Time</dt><dd id="used-time">…</dd></div>
+            <div><dt>Tokens</dt><dd id="used-tokens">…</dd></div>
+          </dl>
+          <div class="blocked-text" id="blocked-text" hidden>
+            <p class="blocked-label">Blocked answer. The engineer never saw this.</p>
+            <blockquote id="blocked-quote"></blockquote>
+          </div>
+          <h4>Checks</h4>
+          <ul class="checks" id="checks"></ul>
+          <h4>Judge</h4>
+          <div class="judge" id="judge"></div>
+          <h4>Tool calls</h4>
+          <ol class="trace" id="trace"></ol>
+        </div>
+      </div>
+
+      <div class="op-block" id="incidents-block">
+        <h3>Blocked answers <span class="count" id="blocked-count">0</span></h3>
+        <ul class="incidents" id="incidents"><li class="empty">None yet.</li></ul>
+      </div>
+
+      <div class="op-block" id="timeline-block">
+        <h3>Timeline</h3>
+        <ol class="timeline" id="timeline"><li class="empty">Waiting for changes.</li></ol>
+      </div>
+
+      <div class="op-block local" id="local-block" hidden>
+        <h3>Local test mode controls</h3>
+        <p class="local-note">These stand in for changes you would make in the LaunchDarkly UI. They travel through the same SDK listener as real changes.</p>
+        <p class="local-stage" id="local-stage"></p>
+        <ol class="stages" id="stages"></ol>
+        <div class="local-row">
+          <button type="button" class="btn btn-ghost" id="edit-instructions">Edit candidate instructions</button>
+          <button type="button" class="btn btn-ghost" id="toggle-connection">Simulate connection loss</button>
+        </div>
+      </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

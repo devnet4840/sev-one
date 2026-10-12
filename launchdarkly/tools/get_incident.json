@@ -1,0 +1,15 @@
+{
+  "key": "get_incident",
+  "description": "Look up an open incident by ID. Returns the service, severity, the alert, current metrics against their normal values, the most recent deploy, and ABC Company's incident response policy with an 'allowed' true/false field for each action. Always call this before answering.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "incident_id": {
+        "type": "string",
+        "description": "The incident ID, for example INC-4821."
+      }
+    },
+    "required": ["incident_id"],
+    "additionalProperties": false
+  }
+}
