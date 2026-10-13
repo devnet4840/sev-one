@@ -115,7 +115,7 @@ The tool keys must match exactly, including case, because the app connects each 
 
 1. In the left sidebar, switch to **Agents**, then select **Configs** and create a new config.
 2. Choose **Agent** mode. Name it `Incident assistant`, and set the key to `incident-assistant`.
-3. Create these variations. For each one, paste the instructions into the **Agent task** box, pick the model from the model menu, and click **+ Add tools** to add both `get_incident` and `get_runbook`. You don't need **+ Add judges**: the app runs the judge itself (step 6) on every answer.
+3. Create these variations. For each one, paste the instructions into the **Agent task** box, pick the model from the model menu, and click **+ Add tools** to add both `get_incident` and `get_runbook`. Leave **+ Add judges** for now; you attach the judge in step 6 after creating it.
 
 | Variation name | Instructions (paste the whole file) | Model |
 |---|---|---|
@@ -143,9 +143,12 @@ If `qa-dana` does not show up in search yet, start the app once (step 9) and sel
 
 ### Step 6. Create the judge
 
-1. In **Agents**, then **Configs**, create a config and choose **Judge**.
-2. Name it `Incident policy judge` and make sure its key is `incident-policy-judge`. Set **Provider** to **OpenAI** and **Judge type** to **Custom**.
-3. Put the contents of [`launchdarkly/instructions/judge.md`](launchdarkly/instructions/judge.md) in the judge's system message. Keep `{{message_history}}` in it. The SDK fills it with the engineer's question, every tool call with its result (including the policy), and the answer to grade.
+1. In **Agents**, then **Configs**, click **Create config** and choose **Judge** (checked on a trial).
+2. Describe what to grade (any short description; LaunchDarkly generates a starter rubric from it), set **Judge model** to **OpenAI**, and click **Edit config key** to set the key to `incident-policy-judge`. Click **Generate judge**. LaunchDarkly picks the display name; only the key matters.
+3. On the judge's **Variations** tab, set the model to **gpt-4o**. In testing, gpt-4o-mini misread the reply fields and blocked correct answers.
+4. Replace the **System** message with [`launchdarkly/instructions/judge.md`](launchdarkly/instructions/judge.md), everything except the last `{{message_history}}` line. Keep LaunchDarkly's generated **Assistant** message (`{{message_history}}`) and **User** message (`{{response_to_evaluate}}`): the SDK fills them with the question, every tool call and result, and the answer to grade.
+5. Click **Review and save**.
+6. **Attach the judge to the agent config (checked on a trial).** Open the **Incident assistant** config, **Variations** tab. On each of the four variations, click **+ Add judges** and pick the judge (sampling 100%). Click **Review and save**. This is what makes the judge's scores appear on the config's **Monitoring** tab, under the event key `$ld:ai:judge:incident-policy-judge`. The app still runs the judge call itself and tells the SDK to skip the attached judges, so nothing runs twice.
 
 The app runs this judge on every AI answer and blocks any answer that scores below `JUDGE_PASS_THRESHOLD` (default 0.7). It also blocks when the judge returns no score, times out, or returns anything outside 0 to 1. To run with code checks only, set `JUDGE_CONFIG_KEY=off` in `.env`.
 
@@ -192,7 +195,7 @@ LaunchDarkly's trigger docs don't name the HTTP method. The app sends POST, whic
 | 5. Live change | Edit the `baseline` instructions in LaunchDarkly. Ask as Sam again. | No deploy. The console shows the new config version. |
 | 6. Failure and rollback | Click **Inject test failure**, then ask as Sam. Then click **Roll back AI guidance**. | The test fixture is a known bad reply, labeled in the console as not a model answer. Its fields are correct, but its sentence claims the assistant already rolled back the deploy, so the text check blocks it. Sam still gets the runbook. The rollback reaches every open console with no reload. To show `curl` too, click **Restore**, then run the `curl` command. |
 | 6b. Real-model regression (optional) | Point the config's default rule at `fast-fix` and ask as Sam. | A real prompt change going wrong. With a real model the exact wording varies from run to run, which is why step 6 uses the fixture for a failure that happens on cue. |
-| 7. Evidence | Open the config's **Monitoring** tab in LaunchDarkly. | Duration, tokens, cost, and judge scores for each variation. Say plainly that the numbers come from test traffic (see below): they show how measurement works, not a proven winner. |
+| 7. Evidence | Open the config's **Monitoring** tab in LaunchDarkly. In the **Charts** picker, tick Cost, Requests, Request duration, Tokens, and the judge. | Cost, duration, tokens, and judge scores for each variation. Say plainly that the numbers come from test traffic (see below): they show how measurement works, not a proven winner. |
 
 In local test mode, steps 4 to 6b use the **Local test mode controls** instead of the LaunchDarkly UI.
 
